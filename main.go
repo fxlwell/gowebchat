@@ -7,6 +7,7 @@ import (
 
 func main() {
 	fmt.Println(config.LogPath)
+	fmt.Println(config.MysqlConf)
 }
 
 func init() {
