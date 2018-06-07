@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"github.com/go-ini/ini"
 	lib_log "github.com/jcsz/gowebchat/library/log"
 )
@@ -33,7 +32,7 @@ func Parse_log_config() {
 		}
 		tmp_log_conf := lib_log.Conf{}
 		tmp_log_conf.File = LogPath + "/" + sec.Key(L_CFG_FILE).MustString("")
-		tmp_log_conf.Level = sec.Key(L_CFG_LEVEL).MustString("")
+		tmp_log_conf.Level = sec.Key(L_CFG_LEVEL).MustInt(7)
 		tmp_log_conf.Suffix = sec.Key(L_CFG_SUFFIX).MustString("")
 		LogConf[section_name] = tmp_log_conf
 	}

@@ -123,3 +123,6 @@ func (l *Logger) Fatalf(format string, args ...interface{}) {
 		l.log.Output(2, fmt.Sprintf(format, args...))
 	}
 }
+func (l *Logger) Printf(format string, args ...interface{}) {
+	l.log.Output(2, fmt.Sprintf(format, args...))
+}
