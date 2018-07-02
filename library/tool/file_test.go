@@ -15,3 +15,12 @@ func Test_file_exist(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func Test_file_not_exists_to_create(t *testing.T) {
+	re := File_not_exists_to_create("/home/ldap/lifuxing/gopath/src/github.com/jcsz/gowebchat/library/tool/filex.txt")
+	re1 := File_exists("/home/ldap/lifuxing/gopath/src/github.com/jcsz/gowebchat/library/tool/filex.txt")
+	if re == nil && re1 == true {
+	} else {
+		t.Fail()
+	}
+}

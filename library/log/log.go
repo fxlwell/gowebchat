@@ -2,7 +2,6 @@ package log
 
 import (
 	"fmt"
-	lib_tool "github.com/jcsz/gowebchat/library/tool"
 	"log"
 	"os"
 	"time"
@@ -14,6 +13,7 @@ type Logger struct {
 	logfile string
 	level   int
 	suffix  string
+	fileFd  *os.File
 }
 
 const (
@@ -39,7 +39,7 @@ const (
 	SUFFIX_YMDHIS   = "2006-01-02-15-04-05"
 )
 
-func NewLogger(logFile string, level int, suffix string) *Logger {
+func NewLogger(logFile string, level int, suffix string) (*Logger, error) {
 
 	l := &Logger{
 		file:   logFile,
@@ -47,17 +47,14 @@ func NewLogger(logFile string, level int, suffix string) *Logger {
 		suffix: suffix,
 	}
 
-	logf := l.get_log_file()
+	logf := l.get_log_file_name()
 	l.logfile = logf
 
-	if err := lib_tool.File_not_exists_to_create(logf); err != nil {
-		panic(err)
-	}
-
-	logFd, err := os.OpenFile(logf, os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModeAppend|os.ModePerm)
+	logFd, err := l.create_log_file(logf)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+	l.fileFd = logFd
 
 	logger := log.New(logFd, "", log.Ldate|log.Ltime|log.Lshortfile)
 
@@ -65,13 +62,20 @@ func NewLogger(logFile string, level int, suffix string) *Logger {
 
 	go l.check_and_update_file_name()
 
-	return l
+	return l, nil
 }
 
-func (l *Logger) get_log_file() string {
-	suffix := time.Now().Format(l.suffix)
-	new_file := l.file + "." + suffix
-	return new_file
+func (l *Logger) create_log_file(logFileName string) (*os.File, error) {
+	return os.OpenFile(logFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModeDir|os.ModePerm)
+}
+
+func (l *Logger) get_log_file_name() string {
+	if l.file != "/dev/null" {
+		suffix := time.Now().Format(l.suffix)
+		new_file := l.file + "." + suffix
+		return new_file
+	}
+	return l.file
 }
 
 func (l *Logger) check_and_update_file_name() {
@@ -81,12 +85,14 @@ func (l *Logger) check_and_update_file_name() {
 	for {
 		select {
 		case <-t.C:
-			newf := l.get_log_file()
+			newf := l.get_log_file_name()
 			if newf != l.logfile {
-				logFd, err := os.OpenFile(newf, os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModeAppend|os.ModePerm)
+				logFd, err := l.create_log_file(newf)
 				if err == nil {
 					l.logfile = newf
 					l.log.SetOutput(logFd)
+					l.fileFd.Close()
+					l.fileFd = logFd
 				}
 			}
 		}

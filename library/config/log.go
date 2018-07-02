@@ -3,6 +3,8 @@ package config
 import (
 	"github.com/go-ini/ini"
 	lib_log "github.com/jcsz/gowebchat/library/log"
+	lib_tool "github.com/jcsz/gowebchat/library/tool"
+	"os"
 )
 
 var (
@@ -23,7 +25,12 @@ func Parse_log_config() {
 	if err != nil {
 		panic(err)
 	}
+
 	LogPath = cfg.Section(L_CFG_SECTION).Key(L_CFG_PATH).MustString("./var/logs")
+
+	if !lib_tool.File_exists(LogPath) {
+		os.MkdirAll(LogPath, 0775)
+	}
 
 	for _, sec := range cfg.Sections() {
 		section_name := sec.Name()

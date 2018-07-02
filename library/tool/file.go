@@ -18,3 +18,18 @@ func File_exists(file string) bool {
 	}
 	return false
 }
+
+func File_not_exists_to_create(file string) error {
+	if File_exists(file) {
+		return nil
+	}
+
+	f, err := os.Create(file)
+	if err != nil {
+		return err
+	} else {
+		f.Close()
+	}
+
+	return nil
+}
