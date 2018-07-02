@@ -31,7 +31,7 @@ func Init(confs map[string]Conf) error {
 	return nil
 }
 
-func GetNode(node string) *Logger {
+func Node(node string) *Logger {
 	if logger, ok := _loggers[node]; ok {
 		return logger
 	}
