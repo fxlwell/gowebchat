@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -83,7 +84,7 @@ func (c *Condition) Prepare() (string, error) {
 		conds = append(conds, fmt.Sprintf("%s ?", v))
 	}
 
-	sql := fmt.Sprintf("WHERE %s ", strings.Join(conds, " and "))
+	sql := fmt.Sprintf("WHERE %s", strings.Join(conds, " and "))
 
 	return sql, nil
 }
@@ -110,7 +111,13 @@ func (f *Field) Prepare() (string, error) {
 	if len(keys) == 0 {
 		return "*", nil
 	}
-	sql := fmt.Sprintf(" %s ", strings.Join(keys, ","))
+	/*
+		var fields []string
+		for _, v := range keys {
+			fields = append(fields, fmt.Sprintf("`%s`", v))
+		}
+	*/
+	sql := fmt.Sprintf("%s", strings.Join(keys, ","))
 	return sql, nil
 }
 func (f *Field) PrepareSet() (string, error) {
@@ -127,8 +134,13 @@ func (f *Field) PrepareSet() (string, error) {
 	return sql, nil
 }
 
-func (f *Field) ExecVal() []interface{} {
+func (f *Field) ExecValSet() []interface{} {
 	return f.val.Values()
+}
+
+func (f *Field) ExecVal() []interface{} {
+	var r []interface{}
+	return r
 }
 
 /* limit offse*/
@@ -211,114 +223,102 @@ func (g *GroupByHaving) ExecVal() []interface{} {
 	return g.val.Values()
 }
 
-/*
 type SelectMap struct {
-	allkeys *OrderMap
-	field   *OrderMap
-	conds   *OrderMap
-	limit   int64
-	offset  int64
-	orderby string
-	groupby string
-	having  *OrderMap
+	field         SqlExpr
+	conds         SqlExpr
+	limitOffset   SqlExpr
+	groupbyHaving SqlExpr
+	orderby       string
 }
-
-const (
-	MYSQL_SELECT_FIELD   = "field"
-	MYSQL_SELECT_CONDS   = "conds"
-	MYSQL_SELECT_LIMIT   = "limit"
-	MYSQL_SELECT_OFFSET  = "offset"
-	MYSQL_SELECT_ORDERBY = "orderby"
-	MYSQL_SELECT_GROUPBY = "groupby"
-	MYSQL_SELECT_HAVING  = "having"
-)
 
 func NewSelectMap() *SelectMap {
 	sm := &SelectMap{
-		allkeys: NewOrderMap(),
-		field:   NewOrderMap(),
-		conds:   NewOrderMap(),
-		having:  NewOrderMap(),
+		field:         NewField(),
+		conds:         NewCondition(),
+		limitOffset:   NewLimitOffset(),
+		groupbyHaving: NewGroupByHaving(),
 	}
 	return sm
 }
-func (sm *SelectMap) SetField(field string) *SelectMap {
-	sm.field.Set(field, field)
-	sm.allkeys.Set(MYSQL_SELECT_FIELD, MYSQL_SELECT_FIELD)
+func (sm *SelectMap) SetField(fields ...string) *SelectMap {
+	for _, v := range fields {
+		sm.field.Set(v, v)
+	}
 	return sm
 }
 func (sm *SelectMap) SetCondition(cond string, value interface{}) *SelectMap {
 	sm.conds.Set(cond, value)
-	sm.allkeys.Set(MYSQL_SELECT_CONDS, MYSQL_SELECT_CONDS)
 	return sm
 }
 func (sm *SelectMap) SetLimit(limit int64) *SelectMap {
-	sm.limit = limit
-	sm.allkeys.Set(MYSQL_SELECT_LIMIT, MYSQL_SELECT_LIMIT)
+	sm.limitOffset.Set(MYSQL_SELECT_LIMIT, limit)
 	return sm
 }
 func (sm *SelectMap) SetOffset(offset int64) *SelectMap {
-	sm.offset = offset
-	sm.allkeys.Set(MYSQL_SELECT_OFFSET, MYSQL_SELECT_OFFSET)
+	sm.limitOffset.Set(MYSQL_SELECT_OFFSET, offset)
 	return sm
 }
 func (sm *SelectMap) SetOrderBy(orderby string) *SelectMap {
 	sm.orderby = orderby
-	sm.allkeys.Set(MYSQL_SELECT_ORDERBY, MYSQL_SELECT_ORDERBY)
 	return sm
 }
 func (sm *SelectMap) SetGroupBy(groupby string) *SelectMap {
-	sm.groupby = groupby
-	sm.allkeys.Set(MYSQL_SELECT_GROUPBY, MYSQL_SELECT_GROUPBY)
+	sm.groupbyHaving.Set(MYSQL_SELECT_GROUPBY, groupby)
 	return sm
 }
 func (sm *SelectMap) SetHaving(cond string, value interface{}) *SelectMap {
-	sm.having.Set(cond, value)
-	sm.allkeys.Set(MYSQL_SELECT_HAVING, MYSQL_SELECT_HAVING)
+	sm.groupbyHaving.Set(cond, value)
 	return sm
 }
 
-func (sm *SelectMap) GetPrepareSql(table string) string {
-	key_maps := sm.allkeys.Maps()
-
-	key := MYSQL_SELECT_FIELD
-	var f []string
-	var target_f string
-	if _, ok := key_maps[key]; ok {
-		f = sm.field.Keys()
-	} else {
-		f = []string{"*"}
+func (sm *SelectMap) GetPrepareSql(table string) (string, error) {
+	var (
+		err error
+		s   string
+	)
+	s, err = sm.field.Prepare()
+	if err != nil {
+		return "", err
 	}
-	target_f = strings.Join(f, ',')
+	s_field := s
 
-	key := "conds"
-	var c []string
-	var target_c string
-	if _, ok := key_maps[key]; ok {
-		c = sm.conds.Keys()
-		target_f = strings.Join(f, ',')
+	s, err = sm.conds.Prepare()
+	if err != nil {
+		return "", err
 	}
+	s_cond := s
 
-	key := "groupby"
-	var g string
-	if _, ok := key_maps[key]; ok {
-		g = sm.groupby
+	s, err = sm.groupbyHaving.Prepare()
+	if err != nil {
+		return "", err
 	}
+	s_grouphaving := s
 
-	key := "offset"
-	var off int64
-	if _, ok := key_maps[key]; ok {
-		off = sm.offset
+	s, err = sm.limitOffset.Prepare()
+	if err != nil {
+		return "", err
 	}
+	s_limitoffset := s
 
-	key := "limit"
-	var lim int64
-	if _, ok := key_maps[key]; ok {
-		lim = sm.limit
-	}
-	sql := fmt.Sprintf("SELECT %s FROM %s %s %s %s")
-	return sql
+	re, _ := regexp.Compile(`\s{2,}`)
+	sql := fmt.Sprintf("SELECT %s FROM %s %s %s %s %s", s_field, table, s_cond, s_grouphaving, sm.orderby, s_limitoffset)
+	sql = re.ReplaceAllString(sql, " ")
+	sql = strings.TrimRight(sql, " ")
+	return sql, nil
 }
-func (sm *SelectMap) GetExecValueSql() []string {
+func (sm *SelectMap) ExecVal() []interface{} {
+	var ret []interface{}
+	for _, v := range sm.field.ExecVal() {
+		ret = append(ret, v)
+	}
+	for _, v := range sm.conds.ExecVal() {
+		ret = append(ret, v)
+	}
+	for _, v := range sm.groupbyHaving.ExecVal() {
+		ret = append(ret, v)
+	}
+	for _, v := range sm.limitOffset.ExecVal() {
+		ret = append(ret, v)
+	}
+	return ret
 }
-*/

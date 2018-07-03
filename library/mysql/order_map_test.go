@@ -24,7 +24,7 @@ func Test_Condition(t *testing.T) {
 	c.Set("id >", 10009)
 	c.Set("type =", "user_test")
 	v := c.ExecVal()
-	if s, _ := c.Prepare(); s != "WHERE id > ? and type = ? " {
+	if s, _ := c.Prepare(); s != "WHERE id > ? and type = ?" {
 		t.Fail()
 	}
 	if v[0] != 10009 || v[1].(string) == "type" {
@@ -36,8 +36,8 @@ func Test_Field(t *testing.T) {
 	c := NewField()
 	c.Set("id", 10009)
 	c.Set("type", "user_test")
-	v := c.ExecVal()
-	if s, _ := c.Prepare(); s != " id,type " {
+	v := c.ExecValSet()
+	if s, _ := c.Prepare(); s != "id,type" {
 		t.Fail()
 	}
 	s, err := c.PrepareSet()
@@ -121,6 +121,39 @@ func Test_GroupByHaving(t *testing.T) {
 	s, err = c.Prepare()
 	v = c.ExecVal()
 	if err != nil || s != "" || len(v) != 0 {
+		t.Fail()
+	}
+}
+
+func Test_SelectMap(t *testing.T) {
+	c := NewSelectMap()
+	sql, err := c.GetPrepareSql("go_test")
+	v := c.ExecVal()
+	if sql != "SELECT * FROM go_test" || err != nil || len(v) != 0 {
+		t.Fail()
+	}
+
+	c.SetField("type as t", "value")
+	sql, err = c.GetPrepareSql("go_test")
+	v = c.ExecVal()
+	if sql != "SELECT type as t,value FROM go_test" || err != nil || len(v) != 0 {
+		t.Fail()
+	}
+
+	c.SetCondition("id>=", "20001")
+	c.SetCondition("type=", "user")
+	c.SetCondition("value=", "1234567")
+	sql, err = c.GetPrepareSql("go_test")
+	v = c.ExecVal()
+
+	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ?" || err != nil || len(v) != 3 {
+		t.Fail()
+	}
+
+	c.SetLimit(1000)
+	sql, err = c.GetPrepareSql("go_test")
+	v = c.ExecVal()
+	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ? LIMIT ?" || err != nil || len(v) != 4 {
 		t.Fail()
 	}
 }
