@@ -176,7 +176,20 @@ func (l *LimitOffset) Prepare() (string, error) {
 	return "LIMIT ? ", nil
 }
 func (l *LimitOffset) ExecVal() []interface{} {
-	return l.val.Values()
+	var r []interface{}
+	maps := l.val.Maps()
+	if len(maps) == 0 {
+		return r
+	}
+	v_offset, ok_offset := maps[MYSQL_SELECT_OFFSET]
+	v_limit, ok_limit := maps[MYSQL_SELECT_LIMIT]
+	if ok_limit && ok_offset {
+		r = append(r, v_offset, v_limit)
+	} else if ok_limit && !ok_offset {
+		r = append(r, v_limit)
+	}
+
+	return r
 }
 
 /* groupby having */
@@ -300,8 +313,13 @@ func (sm *SelectMap) GetPrepareSql(table string) (string, error) {
 	}
 	s_limitoffset := s
 
+	s_orderby := ""
+	if sm.orderby != "" {
+		s_orderby = fmt.Sprintf("ORDER BY %s", sm.orderby)
+	}
+
 	re, _ := regexp.Compile(`\s{2,}`)
-	sql := fmt.Sprintf("SELECT %s FROM %s %s %s %s %s", s_field, table, s_cond, s_grouphaving, sm.orderby, s_limitoffset)
+	sql := fmt.Sprintf("SELECT %s FROM %s %s %s %s %s", s_field, table, s_cond, s_grouphaving, s_orderby, s_limitoffset)
 	sql = re.ReplaceAllString(sql, " ")
 	sql = strings.TrimRight(sql, " ")
 	return sql, nil

@@ -156,4 +156,31 @@ func Test_SelectMap(t *testing.T) {
 	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ? LIMIT ?" || err != nil || len(v) != 4 {
 		t.Fail()
 	}
+
+	c.SetOffset(10)
+	sql, err = c.GetPrepareSql("go_test")
+	v = c.ExecVal()
+	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ? LIMIT ?,?" || err != nil || len(v) != 5 || v[4].(int64) != 1000 {
+		t.Fail()
+	}
+
+	c.SetOrderBy("id desc")
+	sql, err = c.GetPrepareSql("go_test")
+	v = c.ExecVal()
+	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ? ORDER BY id desc LIMIT ?,?" || err != nil || len(v) != 5 || v[4].(int64) != 1000 {
+		t.Fail()
+	}
+
+	c.SetGroupBy("cnt")
+	sql, err = c.GetPrepareSql("go_test")
+	v = c.ExecVal()
+	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ? GROUP BY cnt ORDER BY id desc LIMIT ?,?" || err != nil || len(v) != 5 || v[4].(int64) != 1000 {
+		t.Fail()
+	}
+	c.SetHaving("cnt>", 199)
+	sql, err = c.GetPrepareSql("go_test")
+	v = c.ExecVal()
+	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ? GROUP BY cnt HAVING cnt> ? ORDER BY id desc LIMIT ?,?" || err != nil || len(v) != 6 || v[3].(int) != 199 {
+		t.Fail()
+	}
 }
