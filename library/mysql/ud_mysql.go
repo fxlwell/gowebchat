@@ -25,3 +25,10 @@ func Init(confs map[string]MysqlConf) error {
 	}
 	return nil
 }
+
+func Node(node string) *Mysql {
+	if mysql, ok := _mysqlnodes[node]; ok {
+		return mysql
+	}
+	return nil
+}
