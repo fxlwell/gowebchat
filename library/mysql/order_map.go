@@ -16,6 +16,19 @@ const (
 	MYSQL_SELECT_HAVING  = "having"
 )
 
+type Table struct {
+	Name     string
+	FieldNum int
+}
+
+func NewTable(name string, flen int) *Table {
+	t := &Table{
+		name,
+		flen,
+	}
+	return t
+}
+
 type OrderMap struct {
 	keys []string
 	_map map[string]interface{}
@@ -125,11 +138,12 @@ func (f *Field) PrepareSet() (string, error) {
 	if len(keys) == 0 {
 		return "", fmt.Errorf("have no set value")
 	}
-	for k, v := range keys {
-		keys[k] = fmt.Sprintf("%s = ?", v)
+	var sets []string
+	for _, v := range keys {
+		sets = append(sets, fmt.Sprintf("%s = ?", v))
 	}
 
-	sql := fmt.Sprintf("SET %s ", strings.Join(keys, ","))
+	sql := fmt.Sprintf("SET %s ", strings.Join(sets, ","))
 
 	return sql, nil
 }
@@ -237,50 +251,50 @@ func (g *GroupByHaving) ExecVal() []interface{} {
 }
 
 type SelectMap struct {
-	field         SqlExpr
-	conds         SqlExpr
-	limitOffset   SqlExpr
-	groupbyHaving SqlExpr
-	orderby       string
+	Field         *Field
+	Conds         SqlExpr
+	LimitOffset   SqlExpr
+	GroupbyHaving SqlExpr
+	Orderby       string
 }
 
 func NewSelectMap() *SelectMap {
 	sm := &SelectMap{
-		field:         NewField(),
-		conds:         NewCondition(),
-		limitOffset:   NewLimitOffset(),
-		groupbyHaving: NewGroupByHaving(),
+		Field:         NewField(),
+		Conds:         NewCondition(),
+		LimitOffset:   NewLimitOffset(),
+		GroupbyHaving: NewGroupByHaving(),
 	}
 	return sm
 }
 func (sm *SelectMap) SetField(fields ...string) *SelectMap {
 	for _, v := range fields {
-		sm.field.Set(v, v)
+		sm.Field.Set(v, v)
 	}
 	return sm
 }
 func (sm *SelectMap) SetCondition(cond string, value interface{}) *SelectMap {
-	sm.conds.Set(cond, value)
+	sm.Conds.Set(cond, value)
 	return sm
 }
 func (sm *SelectMap) SetLimit(limit int64) *SelectMap {
-	sm.limitOffset.Set(MYSQL_SELECT_LIMIT, limit)
+	sm.LimitOffset.Set(MYSQL_SELECT_LIMIT, limit)
 	return sm
 }
 func (sm *SelectMap) SetOffset(offset int64) *SelectMap {
-	sm.limitOffset.Set(MYSQL_SELECT_OFFSET, offset)
+	sm.LimitOffset.Set(MYSQL_SELECT_OFFSET, offset)
 	return sm
 }
 func (sm *SelectMap) SetOrderBy(orderby string) *SelectMap {
-	sm.orderby = orderby
+	sm.Orderby = orderby
 	return sm
 }
 func (sm *SelectMap) SetGroupBy(groupby string) *SelectMap {
-	sm.groupbyHaving.Set(MYSQL_SELECT_GROUPBY, groupby)
+	sm.GroupbyHaving.Set(MYSQL_SELECT_GROUPBY, groupby)
 	return sm
 }
 func (sm *SelectMap) SetHaving(cond string, value interface{}) *SelectMap {
-	sm.groupbyHaving.Set(cond, value)
+	sm.GroupbyHaving.Set(cond, value)
 	return sm
 }
 
@@ -289,33 +303,33 @@ func (sm *SelectMap) GetPrepareSql(table string) (string, error) {
 		err error
 		s   string
 	)
-	s, err = sm.field.Prepare()
+	s, err = sm.Field.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_field := s
 
-	s, err = sm.conds.Prepare()
+	s, err = sm.Conds.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_cond := s
 
-	s, err = sm.groupbyHaving.Prepare()
+	s, err = sm.GroupbyHaving.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_grouphaving := s
 
-	s, err = sm.limitOffset.Prepare()
+	s, err = sm.LimitOffset.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_limitoffset := s
 
 	s_orderby := ""
-	if sm.orderby != "" {
-		s_orderby = fmt.Sprintf("ORDER BY %s", sm.orderby)
+	if sm.Orderby != "" {
+		s_orderby = fmt.Sprintf("ORDER BY %s", sm.Orderby)
 	}
 
 	re, _ := regexp.Compile(`\s{2,}`)
@@ -326,16 +340,16 @@ func (sm *SelectMap) GetPrepareSql(table string) (string, error) {
 }
 func (sm *SelectMap) ExecVal() []interface{} {
 	var ret []interface{}
-	for _, v := range sm.field.ExecVal() {
+	for _, v := range sm.Field.ExecVal() {
 		ret = append(ret, v)
 	}
-	for _, v := range sm.conds.ExecVal() {
+	for _, v := range sm.Conds.ExecVal() {
 		ret = append(ret, v)
 	}
-	for _, v := range sm.groupbyHaving.ExecVal() {
+	for _, v := range sm.GroupbyHaving.ExecVal() {
 		ret = append(ret, v)
 	}
-	for _, v := range sm.limitOffset.ExecVal() {
+	for _, v := range sm.LimitOffset.ExecVal() {
 		ret = append(ret, v)
 	}
 	return ret
