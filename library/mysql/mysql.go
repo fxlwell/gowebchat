@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	_ "reflect"
 	"strings"
 )
 
@@ -54,4 +55,51 @@ func (m *Mysql) Insert(table string, value *OrderMap) (int64, error) {
 		return -2, err
 	}
 	return id, nil
+}
+
+func (m *Mysql) GetRows(table *Table, elem *SelectMap, result *[]map[string]string) error {
+	_sql, err := elem.GetPrepareSql(table.Name)
+	if err != nil {
+		return err
+	}
+	stmt, err := m.db.Prepare(_sql)
+	defer stmt.Close()
+	if err != nil {
+		return err
+	}
+	rows, err := stmt.Query(elem.ExecVal()...)
+	defer rows.Close()
+	if err != nil {
+		return err
+	}
+	cloumns, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+
+	values := make([]sql.RawBytes, len(cloumns))
+	scanArgs := make([]interface{}, len(values))
+	for i := range values {
+		scanArgs[i] = &values[i]
+	}
+
+	for rows.Next() {
+		err := rows.Scan(scanArgs...)
+		if err != nil {
+			return err
+		}
+
+		row := make(map[string]string)
+		for k, v := range values {
+			row[cloumns[k]] = string(v)
+		}
+
+		*result = append(*result, row)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+	return err
 }

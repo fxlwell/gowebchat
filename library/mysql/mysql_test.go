@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -23,6 +24,21 @@ func Test_Insert(t *testing.T) {
 	} else {
 		t.Fail()
 	}
+}
+
+func Test_GetRows(t *testing.T) {
+	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
+	if err != nil {
+		panic(err)
+	}
+
+	c := NewSelectMap()
+	c.SetLimit(10)
+
+	var ret []map[string]string
+	err = db.GetRows(NewTable("go_test", 4), c, &ret)
+	fmt.Println(ret, err)
+
 }
 
 func Benchmark_insert(b *testing.B) {
