@@ -53,7 +53,7 @@ func (om *OrderMap) Maps() map[string]interface{} {
 }
 
 /* interface{} */
-type SqlExpr interface {
+type _sqlExpr interface {
 	Set(key string, value interface{})
 	Prepare() (string, error)
 	ExecVal() []interface{}
@@ -266,98 +266,98 @@ func (g *GroupByHaving) ExecVal() []interface{} {
 }
 
 /* Select map */
-type SelectMap struct {
+type SqlExpr struct {
 	Field         *Field
 	Conds         *Condition
-	LimitOffset   SqlExpr
-	GroupbyHaving SqlExpr
+	LimitOffset   _sqlExpr
+	GroupbyHaving _sqlExpr
 	Orderby       string
 }
 
-func NewSelectMap() *SelectMap {
-	sm := &SelectMap{
+func NewSqlExpr() *SqlExpr {
+	se := &SqlExpr{
 		Field:         NewField(),
 		Conds:         NewCondition(),
 		LimitOffset:   NewLimitOffset(),
 		GroupbyHaving: NewGroupByHaving(),
 	}
-	return sm
+	return se
 }
-func (sm *SelectMap) SetField(fields ...string) *SelectMap {
+func (se *SqlExpr) SetField(fields ...string) *SqlExpr {
 	for _, v := range fields {
-		sm.Field.Set(v, v)
+		se.Field.Set(v, v)
 	}
-	return sm
+	return se
 }
-func (sm *SelectMap) SetFieldUp(f, v string) *SelectMap {
-	sm.Field.Set(f, v)
-	return sm
+func (se *SqlExpr) SetFieldUp(f, v string) *SqlExpr {
+	se.Field.Set(f, v)
+	return se
 }
-func (sm *SelectMap) SetCondition(cond string, value interface{}) *SelectMap {
-	sm.Conds.Set(cond, value)
-	return sm
+func (se *SqlExpr) SetCondition(cond string, value interface{}) *SqlExpr {
+	se.Conds.Set(cond, value)
+	return se
 }
-func (sm *SelectMap) SetCondIn(f string, v []string) *SelectMap {
-	sm.Conds.SetIn(f, v)
-	return sm
+func (se *SqlExpr) SetCondIn(f string, v []string) *SqlExpr {
+	se.Conds.SetIn(f, v)
+	return se
 }
-func (sm *SelectMap) SetCondNotIn(f string, v []string) *SelectMap {
-	sm.Conds.SetNotIn(f, v)
-	return sm
+func (se *SqlExpr) SetCondNotIn(f string, v []string) *SqlExpr {
+	se.Conds.SetNotIn(f, v)
+	return se
 }
-func (sm *SelectMap) SetLimit(limit int64) *SelectMap {
-	sm.LimitOffset.Set(MYSQL_SELECT_LIMIT, limit)
-	return sm
+func (se *SqlExpr) SetLimit(limit int64) *SqlExpr {
+	se.LimitOffset.Set(MYSQL_SELECT_LIMIT, limit)
+	return se
 }
-func (sm *SelectMap) SetOffset(offset int64) *SelectMap {
-	sm.LimitOffset.Set(MYSQL_SELECT_OFFSET, offset)
-	return sm
+func (se *SqlExpr) SetOffset(offset int64) *SqlExpr {
+	se.LimitOffset.Set(MYSQL_SELECT_OFFSET, offset)
+	return se
 }
-func (sm *SelectMap) SetOrderBy(orderby string) *SelectMap {
-	sm.Orderby = orderby
-	return sm
+func (se *SqlExpr) SetOrderBy(orderby string) *SqlExpr {
+	se.Orderby = orderby
+	return se
 }
-func (sm *SelectMap) SetGroupBy(groupby string) *SelectMap {
-	sm.GroupbyHaving.Set(MYSQL_SELECT_GROUPBY, groupby)
-	return sm
+func (se *SqlExpr) SetGroupBy(groupby string) *SqlExpr {
+	se.GroupbyHaving.Set(MYSQL_SELECT_GROUPBY, groupby)
+	return se
 }
-func (sm *SelectMap) SetHaving(cond string, value interface{}) *SelectMap {
-	sm.GroupbyHaving.Set(cond, value)
-	return sm
+func (se *SqlExpr) SetHaving(cond string, value interface{}) *SqlExpr {
+	se.GroupbyHaving.Set(cond, value)
+	return se
 }
 
-func (sm *SelectMap) GetPrepareSql(table string) (string, error) {
+func (se *SqlExpr) GetPrepareSql(table string) (string, error) {
 	var (
 		err error
 		s   string
 	)
-	s, err = sm.Field.Prepare()
+	s, err = se.Field.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_field := s
 
-	s, err = sm.Conds.Prepare()
+	s, err = se.Conds.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_cond := s
 
-	s, err = sm.GroupbyHaving.Prepare()
+	s, err = se.GroupbyHaving.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_grouphaving := s
 
-	s, err = sm.LimitOffset.Prepare()
+	s, err = se.LimitOffset.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_limitoffset := s
 
 	s_orderby := ""
-	if sm.Orderby != "" {
-		s_orderby = fmt.Sprintf("ORDER BY %s", sm.Orderby)
+	if se.Orderby != "" {
+		s_orderby = fmt.Sprintf("ORDER BY %s", se.Orderby)
 	}
 
 	re, _ := regexp.Compile(`\s{2,}`)
@@ -367,38 +367,38 @@ func (sm *SelectMap) GetPrepareSql(table string) (string, error) {
 	return sql, nil
 }
 
-func (sm *SelectMap) GetUpdateSql(table string) (string, error) {
+func (se *SqlExpr) GetUpdateSql(table string) (string, error) {
 	var (
 		err error
 		s   string
 	)
-	s, err = sm.Field.PrepareSet()
+	s, err = se.Field.PrepareSet()
 	if err != nil {
 		return "", err
 	}
 	s_field := s
 
-	s, err = sm.Conds.Prepare()
+	s, err = se.Conds.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_cond := s
 
-	s, err = sm.GroupbyHaving.Prepare()
+	s, err = se.GroupbyHaving.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_grouphaving := s
 
-	s, err = sm.LimitOffset.Prepare()
+	s, err = se.LimitOffset.Prepare()
 	if err != nil {
 		return "", err
 	}
 	s_limitoffset := s
 
 	s_orderby := ""
-	if sm.Orderby != "" {
-		s_orderby = fmt.Sprintf("ORDER BY %s", sm.Orderby)
+	if se.Orderby != "" {
+		s_orderby = fmt.Sprintf("ORDER BY %s", se.Orderby)
 	}
 
 	re, _ := regexp.Compile(`\s{2,}`)
@@ -408,18 +408,18 @@ func (sm *SelectMap) GetUpdateSql(table string) (string, error) {
 	return sql, nil
 }
 
-func (sm *SelectMap) ExecVal() []interface{} {
+func (se *SqlExpr) ExecVal() []interface{} {
 	var ret []interface{}
-	for _, v := range sm.Field.ExecVal() {
+	for _, v := range se.Field.ExecVal() {
 		ret = append(ret, v)
 	}
-	for _, v := range sm.Conds.ExecVal() {
+	for _, v := range se.Conds.ExecVal() {
 		ret = append(ret, v)
 	}
-	for _, v := range sm.GroupbyHaving.ExecVal() {
+	for _, v := range se.GroupbyHaving.ExecVal() {
 		ret = append(ret, v)
 	}
-	for _, v := range sm.LimitOffset.ExecVal() {
+	for _, v := range se.LimitOffset.ExecVal() {
 		ret = append(ret, v)
 	}
 	return ret

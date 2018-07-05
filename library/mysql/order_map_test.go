@@ -58,7 +58,7 @@ func Test_Field(t *testing.T) {
 }
 
 func Test_LimitOffset(t *testing.T) {
-	var c SqlExpr
+	var c _sqlExpr
 	c = NewLimitOffset()
 	s, err := c.Prepare()
 	v := c.ExecVal()
@@ -89,7 +89,7 @@ func Test_LimitOffset(t *testing.T) {
 }
 
 func Test_GroupByHaving(t *testing.T) {
-	var c SqlExpr
+	var c _sqlExpr
 	c = NewGroupByHaving()
 	s, err := c.Prepare()
 	v := c.ExecVal()
@@ -127,8 +127,8 @@ func Test_GroupByHaving(t *testing.T) {
 	}
 }
 
-func Test_SelectMap(t *testing.T) {
-	c := NewSelectMap()
+func Test_SqlExpr(t *testing.T) {
+	c := NewSqlExpr()
 	sql, err := c.GetPrepareSql("go_test")
 	v := c.ExecVal()
 	if sql != "SELECT * FROM go_test" || err != nil || len(v) != 0 {

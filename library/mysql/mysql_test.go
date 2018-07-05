@@ -31,7 +31,7 @@ func Test_GetRows(t *testing.T) {
 		panic(err)
 	}
 
-	c := NewSelectMap()
+	c := NewSqlExpr()
 	c.SetLimit(10)
 
 	var ret []map[string]string
@@ -48,7 +48,7 @@ func Test_GetRowsIn(t *testing.T) {
 		panic(err)
 	}
 
-	c := NewSelectMap()
+	c := NewSqlExpr()
 	in := []string{"20118", "20119", "20120"}
 	c.SetCondIn("id", in)
 	c.SetLimit(10)
@@ -66,7 +66,7 @@ func Test_GetRowsNotIn(t *testing.T) {
 		panic(err)
 	}
 
-	c := NewSelectMap()
+	c := NewSqlExpr()
 	notin := []string{"20118", "20119", "20120"}
 	c.SetCondNotIn("id", notin)
 	c.SetLimit(10)
@@ -84,7 +84,7 @@ func Test_Like(t *testing.T) {
 		panic(err)
 	}
 
-	c := NewSelectMap()
+	c := NewSqlExpr()
 	c.SetCondition("type LIKE", "%user%")
 	c.SetLimit(10)
 
@@ -102,7 +102,7 @@ func Test_Update(t *testing.T) {
 		panic(err)
 	}
 
-	c := NewSelectMap()
+	c := NewSqlExpr()
 	c.SetLimit(10)
 	c.SetFieldUp("value", "888888")
 	c.SetFieldUp("type", "999999")
@@ -139,7 +139,7 @@ func Benchmark_getRows(b *testing.B) {
 		panic(err)
 	}
 
-	c := NewSelectMap()
+	c := NewSqlExpr()
 	c.SetLimit(1)
 
 	for i := 0; i < b.N; i++ { //use b.N for looping
