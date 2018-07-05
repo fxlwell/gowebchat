@@ -16,19 +16,6 @@ const (
 	MYSQL_SELECT_HAVING  = "having"
 )
 
-type Table struct {
-	Name     string
-	FieldNum int
-}
-
-func NewTable(name string, flen int) *Table {
-	t := &Table{
-		name,
-		flen,
-	}
-	return t
-}
-
 type OrderMap struct {
 	keys []string
 	_map map[string]interface{}
@@ -85,24 +72,54 @@ func NewCondition() *Condition {
 }
 
 func (c *Condition) Set(cond string, value interface{}) {
-	c.val.Set(cond, value)
+	c.val.Set(fmt.Sprintf("%s ?", cond), value)
 }
+
+func (c *Condition) SetIn(cond string, value []string) {
+	var s []string
+	var omap *OrderMap = NewOrderMap()
+	for k, v := range value {
+		s = append(s, "?")
+		omap.Set(fmt.Sprintf("IN:%s", k), v)
+	}
+	c.val.Set(fmt.Sprintf("%s IN (%s)", cond, strings.Join(s, ",")), *omap)
+}
+
+func (c *Condition) SetNotIn(cond string, value []string) {
+	var s []string
+	var omap *OrderMap = NewOrderMap()
+	for k, v := range value {
+		s = append(s, "?")
+		omap.Set(fmt.Sprintf("NOTIN:%s", k), v)
+	}
+	c.val.Set(fmt.Sprintf("%s NOT IN (%s)", cond, strings.Join(s, ",")), *omap)
+}
+
 func (c *Condition) Prepare() (string, error) {
 	keys := c.val.Keys()
 	if len(keys) == 0 {
 		return "", nil
 	}
-	var conds []string
-	for _, v := range keys {
-		conds = append(conds, fmt.Sprintf("%s ?", v))
-	}
 
-	sql := fmt.Sprintf("WHERE %s", strings.Join(conds, " and "))
+	sql := fmt.Sprintf("WHERE %s", strings.Join(keys, " and "))
 
 	return sql, nil
 }
 func (c *Condition) ExecVal() []interface{} {
-	return c.val.Values()
+	var r []interface{}
+	for _, v := range c.val.Values() {
+		t := fmt.Sprintf("%T", v)
+		if t == "mysql.OrderMap" {
+			omap := v.(OrderMap)
+			p := &omap
+			for _, vv := range p.Values() {
+				r = append(r, vv)
+			}
+		} else {
+			r = append(r, v)
+		}
+	}
+	return r
 }
 
 /* field */
@@ -252,7 +269,7 @@ func (g *GroupByHaving) ExecVal() []interface{} {
 
 type SelectMap struct {
 	Field         *Field
-	Conds         SqlExpr
+	Conds         *Condition
 	LimitOffset   SqlExpr
 	GroupbyHaving SqlExpr
 	Orderby       string
@@ -275,6 +292,14 @@ func (sm *SelectMap) SetField(fields ...string) *SelectMap {
 }
 func (sm *SelectMap) SetCondition(cond string, value interface{}) *SelectMap {
 	sm.Conds.Set(cond, value)
+	return sm
+}
+func (sm *SelectMap) SetCondIn(f string, v []string) *SelectMap {
+	sm.Conds.SetIn(f, v)
+	return sm
+}
+func (sm *SelectMap) SetCondNotIn(f string, v []string) *SelectMap {
+	sm.Conds.SetNotIn(f, v)
 	return sm
 }
 func (sm *SelectMap) SetLimit(limit int64) *SelectMap {

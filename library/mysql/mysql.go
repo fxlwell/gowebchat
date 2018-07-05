@@ -57,8 +57,8 @@ func (m *Mysql) Insert(table string, value *OrderMap) (int64, error) {
 	return id, nil
 }
 
-func (m *Mysql) GetRows(table *Table, elem *SelectMap, result *[]map[string]string) error {
-	_sql, err := elem.GetPrepareSql(table.Name)
+func (m *Mysql) GetRows(table string, elem *SelectMap, result *[]map[string]string) error {
+	_sql, err := elem.GetPrepareSql(table)
 	if err != nil {
 		return err
 	}

@@ -1,7 +1,6 @@
 package mysql
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -36,8 +35,64 @@ func Test_GetRows(t *testing.T) {
 	c.SetLimit(10)
 
 	var ret []map[string]string
-	err = db.GetRows(NewTable("go_test", 4), c, &ret)
-	fmt.Println(ret, err)
+	err = db.GetRows("go_test", c, &ret)
+	if err != nil || len(ret) != 10 {
+		t.Fail()
+	}
+
+}
+
+func Test_GetRowsIn(t *testing.T) {
+	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
+	if err != nil {
+		panic(err)
+	}
+
+	c := NewSelectMap()
+	in := []string{"20118", "20119", "20120"}
+	c.SetCondIn("id", in)
+	c.SetLimit(10)
+
+	var ret []map[string]string
+	err = db.GetRows("go_test", c, &ret)
+	if err != nil || len(ret) != 3 {
+		t.Fail()
+	}
+}
+
+func Test_GetRowsNotIn(t *testing.T) {
+	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
+	if err != nil {
+		panic(err)
+	}
+
+	c := NewSelectMap()
+	notin := []string{"20118", "20119", "20120"}
+	c.SetCondNotIn("id", notin)
+	c.SetLimit(10)
+
+	var ret []map[string]string
+	err = db.GetRows("go_test", c, &ret)
+	if err != nil || len(ret) != 10 {
+		t.Fail()
+	}
+}
+
+func Test_Like(t *testing.T) {
+	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
+	if err != nil {
+		panic(err)
+	}
+
+	c := NewSelectMap()
+	c.SetCondition("type LIKE", "%user%")
+	c.SetLimit(10)
+
+	var ret []map[string]string
+	err = db.GetRows("go_test", c, &ret)
+	if err != nil || len(ret) != 10 {
+		t.Fail()
+	}
 
 }
 
@@ -56,5 +111,19 @@ func Benchmark_insert(b *testing.B) {
 
 	for i := 0; i < b.N; i++ { //use b.N for looping
 		db.Insert("go_test", om)
+	}
+}
+func Benchmark_getRows(b *testing.B) {
+	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
+	if err != nil {
+		panic(err)
+	}
+
+	c := NewSelectMap()
+	c.SetLimit(1)
+
+	for i := 0; i < b.N; i++ { //use b.N for looping
+		var ret []map[string]string
+		db.GetRows("go_test", c, &ret)
 	}
 }

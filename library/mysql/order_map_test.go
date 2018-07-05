@@ -183,4 +183,22 @@ func Test_SelectMap(t *testing.T) {
 	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ? GROUP BY cnt HAVING cnt> ? ORDER BY id desc LIMIT ?,?" || err != nil || len(v) != 6 || v[3].(int) != 199 {
 		t.Fail()
 	}
+
+	in := []string{"10009", "10010", "10020"}
+
+	c.SetCondIn("id", in)
+	sql, err = c.GetPrepareSql("go_test")
+	v = c.ExecVal()
+	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ? and id IN (?,?,?) GROUP BY cnt HAVING cnt> ? ORDER BY id desc LIMIT ?,?" || err != nil || len(v) != 9 || v[3].(string) != "10009" {
+		t.Fail()
+	}
+
+	c.SetCondNotIn("id", in)
+	sql, err = c.GetPrepareSql("go_test")
+	v = c.ExecVal()
+
+	if sql != "SELECT type as t,value FROM go_test WHERE id>= ? and type= ? and value= ? and id IN (?,?,?) and id NOT IN (?,?,?) GROUP BY cnt HAVING cnt> ? ORDER BY id desc LIMIT ?,?" || err != nil || len(v) != 12 || v[6].(string) != "10009" {
+		t.Fail()
+	}
+
 }
