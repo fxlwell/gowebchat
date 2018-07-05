@@ -103,3 +103,27 @@ func (m *Mysql) GetRows(table string, elem *SelectMap, result *[]map[string]stri
 	}
 	return err
 }
+
+func (m *Mysql) Update(table string, elem *SelectMap) (int64, error) {
+	_sql, err := elem.GetUpdateSql(table)
+	if err != nil {
+		return -1, err
+	}
+	elem.Field.SetUp()
+	stmt, err := m.db.Prepare(_sql)
+	defer stmt.Close()
+	if err != nil {
+		return -1, err
+	}
+	res, err := stmt.Exec(elem.ExecVal()...)
+	if err != nil {
+		return -1, err
+	}
+
+	num, err := res.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+
+	return num, err
+}

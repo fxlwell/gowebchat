@@ -124,29 +124,28 @@ func (c *Condition) ExecVal() []interface{} {
 
 /* field */
 type Field struct {
-	val *OrderMap
+	val  *OrderMap
+	isup bool
 }
 
 func NewField() *Field {
 	f := &Field{
-		val: NewOrderMap(),
+		val:  NewOrderMap(),
+		isup: false,
 	}
 	return f
 }
 func (f *Field) Set(cond string, value interface{}) {
 	f.val.Set(cond, value)
 }
+func (f *Field) SetUp() {
+	f.isup = true
+}
 func (f *Field) Prepare() (string, error) {
 	keys := f.val.Keys()
 	if len(keys) == 0 {
 		return "*", nil
 	}
-	/*
-		var fields []string
-		for _, v := range keys {
-			fields = append(fields, fmt.Sprintf("`%s`", v))
-		}
-	*/
 	sql := fmt.Sprintf("%s", strings.Join(keys, ","))
 	return sql, nil
 }
@@ -165,12 +164,11 @@ func (f *Field) PrepareSet() (string, error) {
 	return sql, nil
 }
 
-func (f *Field) ExecValSet() []interface{} {
-	return f.val.Values()
-}
-
 func (f *Field) ExecVal() []interface{} {
 	var r []interface{}
+	if f.isup {
+		return f.val.Values()
+	}
 	return r
 }
 
@@ -267,6 +265,7 @@ func (g *GroupByHaving) ExecVal() []interface{} {
 	return g.val.Values()
 }
 
+/* Select map */
 type SelectMap struct {
 	Field         *Field
 	Conds         *Condition
@@ -288,6 +287,10 @@ func (sm *SelectMap) SetField(fields ...string) *SelectMap {
 	for _, v := range fields {
 		sm.Field.Set(v, v)
 	}
+	return sm
+}
+func (sm *SelectMap) SetFieldUp(f, v string) *SelectMap {
+	sm.Field.Set(f, v)
 	return sm
 }
 func (sm *SelectMap) SetCondition(cond string, value interface{}) *SelectMap {
@@ -363,6 +366,48 @@ func (sm *SelectMap) GetPrepareSql(table string) (string, error) {
 	sql = strings.TrimRight(sql, " ")
 	return sql, nil
 }
+
+func (sm *SelectMap) GetUpdateSql(table string) (string, error) {
+	var (
+		err error
+		s   string
+	)
+	s, err = sm.Field.PrepareSet()
+	if err != nil {
+		return "", err
+	}
+	s_field := s
+
+	s, err = sm.Conds.Prepare()
+	if err != nil {
+		return "", err
+	}
+	s_cond := s
+
+	s, err = sm.GroupbyHaving.Prepare()
+	if err != nil {
+		return "", err
+	}
+	s_grouphaving := s
+
+	s, err = sm.LimitOffset.Prepare()
+	if err != nil {
+		return "", err
+	}
+	s_limitoffset := s
+
+	s_orderby := ""
+	if sm.Orderby != "" {
+		s_orderby = fmt.Sprintf("ORDER BY %s", sm.Orderby)
+	}
+
+	re, _ := regexp.Compile(`\s{2,}`)
+	sql := fmt.Sprintf("UPDATE %s %s %s %s %s %s", table, s_field, s_cond, s_grouphaving, s_orderby, s_limitoffset)
+	sql = re.ReplaceAllString(sql, " ")
+	sql = strings.TrimRight(sql, " ")
+	return sql, nil
+}
+
 func (sm *SelectMap) ExecVal() []interface{} {
 	var ret []interface{}
 	for _, v := range sm.Field.ExecVal() {

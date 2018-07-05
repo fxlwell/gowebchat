@@ -96,6 +96,26 @@ func Test_Like(t *testing.T) {
 
 }
 
+func Test_Update(t *testing.T) {
+	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
+	if err != nil {
+		panic(err)
+	}
+
+	c := NewSelectMap()
+	c.SetLimit(10)
+	c.SetFieldUp("value", "888888")
+	c.SetFieldUp("type", "999999")
+	c.SetCondition("type !=", "999999")
+
+	var num int64
+	num, err = db.Update("go_test", c)
+	if err != nil || num != 10 {
+		t.Fail()
+	}
+
+}
+
 func Benchmark_insert(b *testing.B) {
 	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
 	if err != nil {
