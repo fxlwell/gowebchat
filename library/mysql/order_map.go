@@ -408,6 +408,42 @@ func (se *SqlExpr) GetUpdateSql(table string) (string, error) {
 	return sql, nil
 }
 
+func (se *SqlExpr) GetDeleteSql(table string) (string, error) {
+	var (
+		err error
+		s   string
+	)
+
+	s, err = se.Conds.Prepare()
+	if err != nil {
+		return "", err
+	}
+	s_cond := s
+
+	s, err = se.GroupbyHaving.Prepare()
+	if err != nil {
+		return "", err
+	}
+	s_grouphaving := s
+
+	s, err = se.LimitOffset.Prepare()
+	if err != nil {
+		return "", err
+	}
+	s_limitoffset := s
+
+	s_orderby := ""
+	if se.Orderby != "" {
+		s_orderby = fmt.Sprintf("ORDER BY %s", se.Orderby)
+	}
+
+	re, _ := regexp.Compile(`\s{2,}`)
+	sql := fmt.Sprintf("DELETE FROM  %s %s %s %s %s", table, s_cond, s_grouphaving, s_orderby, s_limitoffset)
+	sql = re.ReplaceAllString(sql, " ")
+	sql = strings.TrimRight(sql, " ")
+	return sql, nil
+}
+
 func (se *SqlExpr) ExecVal() []interface{} {
 	var ret []interface{}
 	for _, v := range se.Field.ExecVal() {

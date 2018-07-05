@@ -57,6 +57,19 @@ func (m *Mysql) Insert(table string, value *OrderMap) (int64, error) {
 	return id, nil
 }
 
+func (m *Mysql) GetRow(table string, elem *SqlExpr, result *map[string]string) error {
+	var r []map[string]string
+	elem.SetLimit(1)
+	err := m.GetRows(table, elem, &r)
+	fmt.Println("RRRR", r)
+	v := r[0]
+	result = &v
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *Mysql) GetRows(table string, elem *SqlExpr, result *[]map[string]string) error {
 	_sql, err := elem.GetPrepareSql(table)
 	if err != nil {
@@ -110,6 +123,30 @@ func (m *Mysql) Update(table string, elem *SqlExpr) (int64, error) {
 		return -1, err
 	}
 	elem.Field.SetUp()
+	stmt, err := m.db.Prepare(_sql)
+	defer stmt.Close()
+	if err != nil {
+		return -1, err
+	}
+	res, err := stmt.Exec(elem.ExecVal()...)
+	if err != nil {
+		return -1, err
+	}
+
+	num, err := res.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+
+	return num, err
+}
+
+func (m *Mysql) Delete(table string, elem *SqlExpr) (int64, error) {
+	_sql, err := elem.GetDeleteSql(table)
+	fmt.Println("sqqqqqqq", _sql, elem.ExecVal())
+	if err != nil {
+		return -1, err
+	}
 	stmt, err := m.db.Prepare(_sql)
 	defer stmt.Close()
 	if err != nil {

@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -40,6 +41,25 @@ func Test_GetRows(t *testing.T) {
 		t.Fail()
 	}
 
+}
+
+func Test_GetRow(t *testing.T) {
+	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
+	if err != nil {
+		panic(err)
+	}
+
+	c := NewSqlExpr()
+	in := []string{"20118", "20119", "20120"}
+	c.SetCondIn("id", in)
+	c.SetLimit(10)
+
+	var ret map[string]string
+	err = db.GetRow("go_test", c, &ret)
+	fmt.Println(err, ret)
+	if err != nil || len(ret) != 3 {
+		t.Fail()
+	}
 }
 
 func Test_GetRowsIn(t *testing.T) {
@@ -111,7 +131,25 @@ func Test_Update(t *testing.T) {
 	var num int64
 	num, err = db.Update("go_test", c)
 	if err != nil || num != 10 {
-		t.Fail()
+		t.Error(err, num)
+	}
+
+}
+
+func Test_Delete(t *testing.T) {
+	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
+	if err != nil {
+		panic(err)
+	}
+
+	c := NewSqlExpr()
+	c.SetLimit(10)
+	c.SetCondition("id <", 20204)
+
+	var num int64
+	num, err = db.Delete("go_test", c)
+	if err != nil || num != 10 {
+		t.Error(err, num)
 	}
 
 }
@@ -145,5 +183,22 @@ func Benchmark_getRows(b *testing.B) {
 	for i := 0; i < b.N; i++ { //use b.N for looping
 		var ret []map[string]string
 		db.GetRows("go_test", c, &ret)
+	}
+}
+
+func Benchmark_update(b *testing.B) {
+	db, err := NewMysql("nice", "Cb84eZaa229ddnm", "test", "10.10.200.12:3306")
+	if err != nil {
+		panic(err)
+	}
+
+	c := NewSqlExpr()
+	c.SetLimit(1)
+	c.SetFieldUp("value", "888888")
+	c.SetFieldUp("type", "999999")
+	c.SetCondition("id >", 57000)
+
+	for i := 0; i < b.N; i++ { //use b.N for looping
+		db.Update("go_test", c)
 	}
 }
