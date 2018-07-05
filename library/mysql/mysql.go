@@ -59,14 +59,15 @@ func (m *Mysql) Insert(table string, value *OrderMap) (int64, error) {
 
 func (m *Mysql) GetRow(table string, elem *SqlExpr, result *map[string]string) error {
 	var r []map[string]string
-	elem.SetLimit(1)
 	err := m.GetRows(table, elem, &r)
-	fmt.Println("RRRR", r)
-	v := r[0]
-	result = &v
 	if err != nil {
 		return err
 	}
+
+	var tmp map[string]string = make(map[string]string)
+	tmp = r[0]
+	*result = tmp
+
 	return nil
 }
 
@@ -143,7 +144,6 @@ func (m *Mysql) Update(table string, elem *SqlExpr) (int64, error) {
 
 func (m *Mysql) Delete(table string, elem *SqlExpr) (int64, error) {
 	_sql, err := elem.GetDeleteSql(table)
-	fmt.Println("sqqqqqqq", _sql, elem.ExecVal())
 	if err != nil {
 		return -1, err
 	}
